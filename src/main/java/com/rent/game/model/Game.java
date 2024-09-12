@@ -32,7 +32,7 @@ public class Game {
     private String dateReleased;
 
     @Column
-    private String describe;
+    private String description;
 
     @Column
     private Double price;
