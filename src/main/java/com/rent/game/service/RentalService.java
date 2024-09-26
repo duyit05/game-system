@@ -1,11 +1,10 @@
 package com.rent.game.service;
 
+import com.rent.game.dto.GameDTO;
+import com.rent.game.dto.NickDTO;
 import com.rent.game.dto.RentalDTO;
 import com.rent.game.exception.*;
-import com.rent.game.model.Account;
-import com.rent.game.model.Game;
-import com.rent.game.model.Nick;
-import com.rent.game.model.Rental;
+import com.rent.game.model.*;
 import com.rent.game.repository.AccountRepository;
 import com.rent.game.repository.GameRepository;
 import com.rent.game.repository.NickRepository;
@@ -16,9 +15,12 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.Duration;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Random;
+import java.util.stream.Collectors;
 
 @Service
 public class RentalService {
@@ -127,5 +129,119 @@ public class RentalService {
         Rental rental = createRental(selectedGameAccount, game);
         logger.info("Gamerented successfully!");
         return convertToRentalDTO(rental);
+    }
+
+    private Rental createRentalByHour(Nick user, Game game, LocalDateTime startDateTime, LocalDateTime endDateTime) {
+        game.setStock(game.getStock() - 1);
+        gameRepository.save(game);
+
+        Rental rental = new Rental();
+        rental.setNick(user);
+        rental.setGame(game);
+        rental.setRentalStart(startDateTime);
+        rental.setRentalEnd(endDateTime);
+        rentalRepository.save(rental);
+
+        return rental;
+    }
+
+    private Rental createRental(Nick user, Game game) {
+        game.setStock(game.getStock() - 1);
+        gameRepository.save(game);
+        Rental rental = new Rental();
+        rental.setNick(user);
+        rental.setGame(game);
+        rental.setRentalStart(LocalDateTime.now());
+        rental.setRentalEnd(LocalDateTime.now());
+
+        rentalRepository.save(rental);
+
+        return rental;
+    }
+
+    @Transactional
+    public void returnAccount(long rentalId) {
+        Rental rental = rentalRepository.findById(rentalId)
+                .orElseThrow(() -> new RentalNotFoundException("Rental not found"));
+        rental.setRentalEnd(LocalDate.now().atStartOfDay());
+        rentalRepository.save(rental);
+
+        Game game = rental.getGame();
+        game.setStock(game.getStock() + 1);
+        gameRepository.save(game);
+    }
+
+    private NickDTO convertToNickDTO(Nick nick) {
+        NickDTO nickDTO = new NickDTO();
+        nickDTO.setId(nick.getId());
+        nickDTO.setUsername(nick.getUsername());
+        nickDTO.setPassword(nick.getPassword());
+        nickDTO.setEmail(nick.getEmail());
+        nickDTO.setPhone(nick.getPhone());
+        nickDTO.setNote(nick.getNote());
+        nickDTO.setStatus(nick.getStatus());
+        nickDTO.setRentedBy(nick.getRentedBy());
+        nickDTO.setReturnDate(nick.getRentalEnd());
+        nickDTO.setRentalDate(nick.getRentalStart());
+        // Tính toán thời gian còn lại
+        LocalDateTime now = LocalDateTime.now();
+        LocalDateTime rentalEnd = nick.getRentalEnd();
+        if (rentalEnd != null) {
+            long remainingTime = Duration.between(now, rentalEnd).getSeconds();
+            nickDTO.setRemainingTime(remainingTime);
+        } else {
+            nickDTO.setRemainingTime(0); // Hoặc giá trị phù hợp khác
+        }
+        List<GameDTO> games = nick.getGames().stream()
+                .map(this::convertToGameDTO)
+                .collect(Collectors.toList());
+        nickDTO.setGames(games);
+        return nickDTO;
+    }
+
+    private RentalDTO convertToRentalDTO(Rental rental) {
+        RentalDTO rentalDTO = new RentalDTO();
+        rentalDTO.setId(rental.getId());
+        rentalDTO.setGameId(rental.getGame().getId());
+        rentalDTO.setGameName(rental.getGame().getName());
+        rentalDTO.setRentalDate(LocalDate.from(rental.getRentalStart()));
+        rentalDTO.setReturnDate(LocalDate.from(rental.getRentalEnd()));
+        rentalDTO.setStatus(rental.getStatus());
+        rentalDTO.setUsername(rental.getNick().getUsername());
+        rentalDTO.setPassword(rental.getNick().getPassword());
+        return rentalDTO;
+    }
+
+    private GameDTO convertToGameDTO(Game game) {
+        GameDTO gameDTO = new GameDTO();
+        gameDTO.setId(game.getId());
+        gameDTO.setName(game.getName());
+        List<String> platforms = game.getPlatforms().stream()
+                .map(Platform::getName)
+                .collect(Collectors.toList());
+        gameDTO.setPlatforms(platforms);
+        return gameDTO;
+    }
+
+    private void updateExpiredRentals() {
+        LocalDateTime now = LocalDateTime.now();
+        List<Nick> expiredRentals = nickRepository.findByRentalEndBefore(now);
+
+        for (Nick nick : expiredRentals) {
+            nick.setStatus("Available");
+            nick.setRentedBy(null);
+            nick.setRentalStart(null);
+            nick.setRentalEnd(null);
+            nickRepository.save(nick);
+        }
+    }
+
+    public List<NickDTO> getRentedAccountsByUser(long userId) {
+        updateExpiredRentals();
+
+        List<Nick> rentedAccounts = nickRepository.findByRentedBy(userId);
+        return rentedAccounts.stream()
+                .map(this::convertToNickDTO)
+                .collect(Collectors.toList());
     }
 }
