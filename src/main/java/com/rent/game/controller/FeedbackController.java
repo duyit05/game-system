@@ -20,6 +20,9 @@ import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
 
+@RestController
+@RequestMapping("/rent-game/game/feedback/")
+
 public class FeedbackController {
     @Autowired
     private FeedbackRepository feedbackRepository;
