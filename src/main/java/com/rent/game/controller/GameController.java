@@ -7,12 +7,11 @@ import com.rent.game.repository.GameRepository;
 import com.rent.game.repository.GameVideoRepository;
 import com.rent.game.service.GameService;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 import java.util.*;
 
@@ -51,8 +50,24 @@ public class GameController {
             return new ResponseEntity<>(HttpStatus.INTERNAL_SERVER_ERROR);
         }
     }
-
     
+
+    @GetMapping("/search")
+    public Page<GameDTO> searchAndFilterGames(
+            @RequestParam(required = false) String keyword,
+            @RequestParam(required = false) List<Long> categoryIds,
+            @RequestParam(required = false) List<Long> platformIds,
+            @RequestParam(required = false) String sortType,
+            @RequestParam(required = false) Double minPrice,
+            @RequestParam(required = false) Double maxPrice,
+            Pageable pageable) {
+        if (sortType == null || sortType.isEmpty()) {
+            sortType = "";
+        }
+        return gameService.searchAndFilterGames2(keyword, categoryIds, platformIds, sortType, minPrice, maxPrice, pageable);
+    }
+
+
     @GetMapping("/keywords")
     public ResponseEntity<List<String>> getRandomKeywords() {
         List<String> allGameNames = gameService.getAllGameNames();
