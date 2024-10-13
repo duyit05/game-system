@@ -29,7 +29,7 @@ public class SecurityConfig {
         return new CustomUserDetailsService();
     }
 
-    private final String [] PUBLIC_ENDPOINTS = {
+    private  final static String [] PUBLIC_ENDPOINTS = {
             "/rent-game/games",
             "/rent-game/games/**",
             "/rent-game/games/oldest",
@@ -37,9 +37,16 @@ public class SecurityConfig {
             "rent-game/category/**",
             "rent-game/platform/**",
             "/un-auth/welcome",
+            "/auth/register", "/auth/token",
+            "/rent-game/game/feedback/**",
+            "/rent-game/wishlist/**",
+            "/rent-game/game/feedback/getFeedback/**",
+            "/rent-game/game/reply/getByFeedbackId/**",
+            "/auth/forgot-password", "/auth/set-password"
     };
 
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
+
         return http.csrf(csrf -> csrf.disable())
 
                 .authorizeHttpRequests(auth -> auth.requestMatchers(PUBLIC_ENDPOINTS).permitAll()
