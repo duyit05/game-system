@@ -7,6 +7,7 @@ import com.rent.game.repository.GameImageRepository;
 import com.rent.game.repository.GameRepository;
 import com.rent.game.repository.GameVideoRepository;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
@@ -26,11 +27,13 @@ public class GameService {
     @Autowired
     private GameVideoRepository gameVideoRepository;
 
+    @Cacheable("games")
     public List<GameDTO> getAllGamesHome() {
         List<Game> games = gameRepository.findAll();
         return games.stream().map(this::convertToDTO).collect(Collectors.toList());
     }
 
+    @Cacheable("game")
     public Page<GameDTO> getAllGames(Pageable pageable) {
         Page<Game> gamesPage = gameRepository.findAll(pageable);
         return gamesPage.map(this::convertToDTO);
@@ -100,7 +103,7 @@ public class GameService {
         return gameDTO;
     }
 
-
+    @Cacheable("game-name")
     public List<String> getAllGameNames() {
         List<Game> games = gameRepository.findAll();
         return games.stream().map(Game::getName).collect(Collectors.toList());

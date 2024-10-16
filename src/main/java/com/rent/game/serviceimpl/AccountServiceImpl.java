@@ -5,6 +5,8 @@ import com.rent.game.model.Account;
 import com.rent.game.repository.AccountRepository;
 import com.rent.game.service.AccountService;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.cache.annotation.Cacheable;
+
 
 import java.util.Comparator;
 import java.util.List;
@@ -56,6 +58,7 @@ public class AccountServiceImpl implements AccountService {
     }
 
     @Override
+    @Cacheable("accounts")
     public List<AccountDTO> getListAccount() {
         List<Account> accountList = accountRepository.findAll();
         return accountList.stream().map(this::mapToDTO).collect(Collectors.toList());

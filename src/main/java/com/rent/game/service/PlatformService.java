@@ -4,6 +4,7 @@ import com.rent.game.dto.PlatformDTO;
 import com.rent.game.model.Platform;
 import com.rent.game.repository.PlatformRepository;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
@@ -14,7 +15,7 @@ public class PlatformService {
 
     @Autowired
     private PlatformRepository platformRepository;
-
+    @Cacheable("platforms")
     public List<PlatformDTO> getAllPlatforms() {
         List<Platform> platforms = platformRepository.findAll();
         return platforms.stream().map(this::convertToDTO).collect(Collectors.toList());
